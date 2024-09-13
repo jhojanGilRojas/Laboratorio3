@@ -1,0 +1,5 @@
+Cien Años de Soledad,Gabriel García Márquez,Realismo Mágico,DISPONIBLE
+el dia de ayer,Gabriel García Márquez,Realismo Mágico,DISPONIBLE
+El Quijote,Miguel de Cervantes,Novela,DISPONIBLE
+1984,George Orwell,Distopía,RESERVADO
+Crimen y Castigo,Fiódor Dostoyevski,Novela Psicológica,DISPONIBLE
