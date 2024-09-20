@@ -13,10 +13,10 @@ import java.util.List;
 
 public class Servidor {
 
-    private static final int PUERTO = 8082;
+    private static final int PUERTO = 3400;
     private static List<Usuario>usuarios = new ArrayList<>();
     private static List<Libro>libros = new ArrayList<>();
-
+    private static String username ;
     public void iniciarServidor() throws IOException {
 
         try (ServerSocket serverSocket = new ServerSocket(PUERTO)) {
@@ -48,42 +48,46 @@ public class Servidor {
         public void run() {
             try (BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  PrintWriter out = new PrintWriter(socket.getOutputStream())) {
-
                 while (true) {
+
                     String operacion = (String) in.readLine();
                     System.out.println("Operación recibida: " + operacion);
-                    String [] lista = operacion.split(",");
+                    String[] lista = operacion.split(",");
 
                     switch (lista[0]) {
 
-
                         case "iniciarsesion":
+
                             boolean usuarioAutenticacion =  autenticarUsuario(lista[1],lista[2]);
-                            out.println(usuarioAutenticacion+"\n"+"");
-                            break;
-                        case "registrarusuario":
-                            boolean usuarioRegistrado = registraUsuario(lista[1],lista[2]);
-                            out.println(usuarioRegistrado+"\n"+"");
+                            username = lista[1];
+                            out.println(usuarioAutenticacion+"\n");
                             break;
 
                         case "reservarlibro":
-                            boolean libroReservado = reservarLibro(lista[1],lista[2]);
-                            out.println(libroReservado+"\n"+"");
+                            boolean libroReservado = reservarLibro(lista[1]);
+                            out.println(libroReservado);
                             break;
 
                         case "buscarlibros":
                             String coincidencias = buscarLibros(lista[1]);
+                            System.out.println(coincidencias);
                             out.println(coincidencias);
                             break;
 
                         case "cargarlibros":
+
                             String datos = listarLibros(libros);
+                            System.out.println(datos);
                             out.println(datos);
                             break;
 
-                        case "actualizarcontrasena":
-                            boolean contrasenaActualizada = actualizarContrasena(lista[1],lista[2]);
-                            out.println(contrasenaActualizada+"\n"+"");
+                        case "cambiarpassword":
+
+                            boolean contrasenaActualizada = actualizarContrasena(username,lista[1]);
+                            System.out.println(contrasenaActualizada);
+                            out.println(contrasenaActualizada);
+                            break;
+
                         default:
                             out.println("Operación no reconocida");
                             break;
@@ -100,7 +104,19 @@ public class Servidor {
                     System.out.println("no se han guardado las listas");
                 }
 
-            } finally {
+
+            }
+            catch (NullPointerException exception){
+                try {
+                    Persistencia.guardarLibros(libros);
+                    Persistencia.guardarUsuarios(usuarios);
+                } catch (IOException e) {
+
+                    throw new RuntimeException(e);
+                }
+                System.out.println("Petición null");
+            }
+            finally {
                 try {
                     socket.close();
                 } catch (IOException e) {
@@ -110,37 +126,37 @@ public class Servidor {
         }
 
         private String buscarLibros(String palabraClave) {
-            StringBuilder resultados = new StringBuilder();
+            String resultados = "";
 
             for (Libro libro : libros) {
                 if (libro.getNombre().toLowerCase().contains(palabraClave.toLowerCase()) ||
                         libro.getAutor().toLowerCase().contains(palabraClave.toLowerCase()) ||
                         libro.getEstado().toString().toLowerCase().contains(palabraClave.toLowerCase()) ||
                         libro.getTema().toLowerCase().contains(palabraClave.toLowerCase())) {
-                    resultados.append(libro.toString()).append("\n");
+                    resultados += libro.toString();
                 }
             }
 
-            return resultados.toString();
+            return resultados;
         }
 
 
         private String listarLibros(List<Libro> libros) {
 
-            StringBuilder listaLibros = new StringBuilder();
-            for (Libro libro : libros) {
-                listaLibros.append(libro.toString()).append("\n");
+            String listaLibros = "";
+            for (Libro libro : libros){
+                listaLibros+= libro.toString();
             }
-            return listaLibros.toString();
+            return listaLibros;
         }
 
 
-        private boolean reservarLibro(String nombre, String autor) {
+        private boolean reservarLibro(String nombre) {
 
 
             for (Libro libro:libros){
 
-                if (libro.getNombre().equals(nombre) && libro.getAutor().equals(autor) && libro.getEstado()==Estado.DISPONIBLE){
+                if (libro.getNombre().equals(nombre) && libro.getEstado()==Estado.DISPONIBLE){
                     libro.setEstado(Estado.RESERVADO);
                     return true;
                 }
@@ -148,18 +164,6 @@ public class Servidor {
             return false;
         }
 
-        private boolean registraUsuario(String user, String password) {
-
-            for (Usuario usuario:usuarios){
-                if(usuario.getUser().equals(user)) {
-                    return false;
-                }
-            }
-            Usuario usuario = new Usuario(user,password);
-            usuarios.add(usuario);
-            return true;
-
-        }
 
         public static boolean autenticarUsuario(String username, String password) throws IOException {
 
@@ -172,7 +176,7 @@ public class Servidor {
             return false;
         }
 
-        public static boolean actualizarContrasena(String user,String newPassword) throws IOException {;
+        public static boolean actualizarContrasena(String user,String newPassword) throws IOException {
 
             for (Usuario usuario : usuarios) {
                 if (usuario.getUser().equals(user)) {
